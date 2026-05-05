@@ -1,8 +1,13 @@
 # Git Quick Push Helper
 
-A small Bash helper script to initialize a local Git repository, configure Git identity, create or switch to a branch, commit all current files, and push the branch to GitHub.
+A safer Bash helper script to initialize a local Git repository, configure Git identity, create or switch to a branch, commit current files, and push the branch to GitHub.
 
-> **Important:** The script stores your GitHub token in a local config file at `~/.git_quick_config`. This is convenient, but it must be protected carefully.
+The secure version avoids storing GitHub tokens by default and supports multiple authentication modes:
+
+- GitHub CLI authentication with `gh auth login`
+- SSH keys
+- Git Credential Manager
+- Fine-grained GitHub token fallback, requested per run and not saved to disk
 
 ---
 
@@ -10,16 +15,15 @@ A small Bash helper script to initialize a local Git repository, configure Git i
 
 - [Overview](#overview)
 - [Features](#features)
-- [Repository Structure](#repository-structure)
+- [Recommended Authentication Mode](#recommended-authentication-mode)
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [How It Works](#how-it-works)
 - [Usage](#usage)
-- [Configuration](#configuration)
+- [Authentication Modes](#authentication-modes)
+- [Configuration File](#configuration-file)
 - [Security Notes](#security-notes)
 - [Diagrams](#diagrams)
 - [Troubleshooting](#troubleshooting)
-- [Recommended Fixes](#recommended-fixes)
 - [License](#license)
 
 ---
@@ -28,47 +32,53 @@ A small Bash helper script to initialize a local Git repository, configure Git i
 
 This script automates a common Git workflow:
 
-1. Load or create GitHub credentials.
-2. Ask for repository, branch, and commit details.
-3. Initialize the current directory as a Git repository.
-4. Configure local Git username and email.
-5. Configure the GitHub remote.
-6. Create or switch to a branch.
-7. Commit all files.
-8. Push the branch to GitHub.
-
-The script is useful for quickly pushing code from different machines, labs, or project folders.
+1. Load or create local script configuration.
+2. Ensure `.git_quick_config` is globally ignored by Git.
+3. Authenticate using GitHub CLI, SSH, Git Credential Manager, or a temporary fine-grained token.
+4. Ask for organization, repository, branch, and commit message.
+5. Initialize Git in the current directory.
+6. Configure local Git user name and email.
+7. Configure the GitHub remote.
+8. Create or switch to the selected branch.
+9. Add, commit, and push changes.
 
 ---
 
 ## Features
 
-- Interactive first-time configuration.
-- Stores user name, email, GitHub username, and token.
-- Supports updating stored configuration with `--config`.
-- Supports deleting stored configuration with `--clear`.
-- Initializes Git automatically.
-- Creates or switches to the selected branch.
-- Adds, commits, and pushes all files.
+- Safer authentication workflow.
+- Uses GitHub CLI by default.
+- Supports SSH remotes.
+- Supports Git Credential Manager.
+- Supports token fallback without saving the token.
+- Automatically protects `.git_quick_config` using global Git ignore.
+- Stores only non-secret configuration by default.
+- Fixes the remote URL format.
+- Avoids empty commits when there are no changes.
 
 ---
 
-## Repository Structure
+## Recommended Authentication Mode
 
-Example structure:
-
-```text
-.
-├── git-quick.sh
-├── README.md
-└── your-project-files/
-```
-
-Recommended script name:
+The recommended mode is GitHub CLI:
 
 ```bash
-git-quick.sh
+gh auth login
 ```
+
+Then configure the script with:
+
+```bash
+./git-quick-push-secure.sh --config
+```
+
+Choose:
+
+```text
+gh
+```
+
+as the authentication mode.
 
 ---
 
@@ -79,8 +89,14 @@ You need:
 - Bash
 - Git
 - A GitHub account
-- A GitHub Personal Access Token
 - A GitHub repository created beforehand
+
+Optional, depending on authentication mode:
+
+- GitHub CLI: `gh`
+- SSH key configured in GitHub
+- Git Credential Manager
+- Fine-grained GitHub token with minimum required permissions
 
 Check Git installation:
 
@@ -88,51 +104,38 @@ Check Git installation:
 git --version
 ```
 
+Check GitHub CLI installation:
+
+```bash
+gh --version
+```
+
+Check GitHub CLI authentication:
+
+```bash
+gh auth status
+```
+
 ---
 
 ## Installation
 
-Clone or copy this repository, then make the script executable:
+Make the script executable:
 
 ```bash
-chmod +x git-quick.sh
+chmod +x git-quick-push-secure.sh
 ```
 
 Optionally move it to a directory in your `PATH`:
 
 ```bash
-sudo cp git-quick.sh /usr/local/bin/git-quick
+sudo cp git-quick-push-secure.sh /usr/local/bin/git-quick-push
 ```
 
-Then you can run it from any project directory:
+Then run it from any project directory:
 
 ```bash
-git-quick
-```
-
----
-
-## How It Works
-
-The script uses this config file:
-
-```bash
-~/.git_quick_config
-```
-
-The file stores:
-
-```bash
-USER_NAME="Your Name"
-USER_EMAIL="your.email@example.com"
-GH_USER="your-github-user"
-TOKEN="your-github-token"
-```
-
-Permissions are restricted with:
-
-```bash
-chmod 600 ~/.git_quick_config
+git-quick-push
 ```
 
 ---
@@ -144,7 +147,7 @@ chmod 600 ~/.git_quick_config
 Run the script from inside the folder you want to push:
 
 ```bash
-./git-quick.sh
+./git-quick-push-secure.sh
 ```
 
 On first run, the script asks for:
@@ -153,7 +156,7 @@ On first run, the script asks for:
 USER_NAME
 USER_EMAIL
 GH_USER
-GitHub Token
+AUTH_MODE
 Organization
 Repository name
 Branch name
@@ -163,10 +166,18 @@ Commit message
 Example:
 
 ```text
+Primera configuración detectada.
 USER_NAME: Esteban Armas
 USER_EMAIL: esteban@example.com
 GH_USER: esteban-armas
-GitHub Token: ********
+
+Selecciona modo de autenticación:
+  1) gh    - GitHub CLI, recomendado
+  2) ssh   - SSH keys
+  3) gcm   - Git Credential Manager
+  4) token - Fine-grained token, no se guarda en disco
+AUTH_MODE [gh]: gh
+
 Organización [work-code-hub]: work-code-hub
 Nombre del Repositorio: my-project
 Nombre de la rama: lenovo
@@ -180,15 +191,17 @@ Mensaje del commit: Initial commit
 Use:
 
 ```bash
-./git-quick.sh --config
+./git-quick-push-secure.sh --config
 ```
 
-This allows you to update:
+This updates:
 
 - Git user name
 - Git email
 - GitHub username
-- GitHub token
+- Authentication mode
+
+The script does not save GitHub tokens.
 
 ---
 
@@ -197,7 +210,7 @@ This allows you to update:
 Use:
 
 ```bash
-./git-quick.sh --clear
+./git-quick-push-secure.sh --clear
 ```
 
 This removes:
@@ -206,67 +219,178 @@ This removes:
 ~/.git_quick_config
 ```
 
-Run the script again to reconfigure it.
+The global Git ignore protection remains enabled.
 
 ---
 
-## Configuration
+### Show Security Notes
 
-The script stores configuration locally in your home folder:
-
-```bash
-$HOME/.git_quick_config
-```
-
-To inspect it:
+Use:
 
 ```bash
-cat ~/.git_quick_config
+./git-quick-push-secure.sh --security
 ```
 
-To check permissions:
+---
+
+### Show Help
+
+Use:
 
 ```bash
-ls -l ~/.git_quick_config
+./git-quick-push-secure.sh --help
 ```
 
-Expected permission:
+---
+
+## Authentication Modes
+
+### 1. GitHub CLI Mode
+
+Recommended mode.
+
+Remote URL format:
+
+```bash
+https://github.com/ORG/REPO.git
+```
+
+Before using it, authenticate with:
+
+```bash
+gh auth login
+```
+
+The script checks:
+
+```bash
+gh auth status
+```
+
+If GitHub CLI is not authenticated, the script starts:
+
+```bash
+gh auth login
+```
+
+---
+
+### 2. SSH Mode
+
+Remote URL format:
+
+```bash
+git@github.com:ORG/REPO.git
+```
+
+Generate a key if needed:
+
+```bash
+ssh-keygen -t ed25519 -C "your.email@example.com"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+
+Add the public key to your GitHub account.
+
+Test SSH access:
+
+```bash
+ssh -T git@github.com
+```
+
+---
+
+### 3. Git Credential Manager Mode
+
+Remote URL format:
+
+```bash
+https://github.com/ORG/REPO.git
+```
+
+Configure Git Credential Manager:
+
+```bash
+git credential-manager configure
+```
+
+Then run the script and select:
 
 ```text
--rw------- 1 user user ... /home/user/.git_quick_config
+gcm
 ```
 
 ---
 
-## Security Notes
+### 4. Token Fallback Mode
 
-This script stores the GitHub token in plain text in:
+This mode asks for a token during each run and does not save it to disk.
+
+Use only a fine-grained GitHub token with the minimum required repository permissions.
+
+Remote URL format during the push:
+
+```bash
+https://GH_USER:TOKEN@github.com/ORG/REPO.git
+```
+
+The token is intentionally not written to:
 
 ```bash
 ~/.git_quick_config
 ```
 
-The script protects the file with:
+---
+
+## Configuration File
+
+The script stores only non-secret configuration in:
 
 ```bash
-chmod 600 "$CONFIG_FILE"
+~/.git_quick_config
 ```
 
-However, consider the following safer alternatives:
+Example:
 
-- Use GitHub CLI authentication with `gh auth login`.
-- Use Git credential manager.
-- Use SSH keys instead of HTTPS tokens.
-- Use fine-grained GitHub tokens with minimum required permissions.
-- Never commit `.git_quick_config` into a repository.
-- Never share screenshots or terminal logs containing the token.
+```bash
+USER_NAME="Esteban Armas"
+USER_EMAIL="esteban@example.com"
+GH_USER="esteban-armas"
+AUTH_MODE="gh"
+```
 
-Add this to your global Git ignore file if needed:
+The file is protected with:
+
+```bash
+chmod 600 ~/.git_quick_config
+```
+
+The script always adds this file to the global Git ignore file:
 
 ```bash
 echo ".git_quick_config" >> ~/.gitignore_global
 git config --global core.excludesfile ~/.gitignore_global
 ```
+
+The script avoids duplicates by checking whether `.git_quick_config` already exists in `~/.gitignore_global`.
+
+---
+
+## Security Notes
+
+Recommended practices:
+
+- Use GitHub CLI authentication with `gh auth login`.
+- Use SSH keys when suitable.
+- Use Git Credential Manager when working with HTTPS remotes.
+- Use fine-grained GitHub tokens only as a fallback.
+- Use tokens with minimum required permissions.
+- Never commit `.git_quick_config` into a repository.
+- Never share screenshots or terminal logs containing tokens.
+- Do not paste tokens into issue trackers, chats, screenshots, or documentation.
+- Rotate any token that may have been exposed.
 
 ---
 
@@ -276,39 +400,72 @@ git config --global core.excludesfile ~/.gitignore_global
 
 ```mermaid
 flowchart TD
-    A[Start script] --> B[Load ~/.git_quick_config]
-    B --> C{Token exists?}
-    C -- No --> D[Ask for USER_NAME, USER_EMAIL, GH_USER and TOKEN]
-    D --> E[Save config with chmod 600]
-    C -- Yes --> F[Use existing config]
-    E --> G[Ask for organization, repository, branch and commit message]
-    F --> G
-    G --> H[git init]
-    H --> I[Configure local Git identity]
-    I --> J[Configure origin remote]
-    J --> K[Create or switch branch]
-    K --> L[git add .]
-    L --> M[git commit -m message]
-    M --> N[git push -u origin HEAD]
-    N --> O[Done]
+    A[Start script] --> B[Ensure global Git ignore protection]
+    B --> C[Load ~/.git_quick_config]
+    C --> D{Config complete?}
+    D -- "No" --> E[Ask for user identity and auth mode]
+    E --> F[Save non-secret config]
+    D -- "Yes" --> G[Use existing config]
+    F --> H[Check dependencies]
+    G --> H
+    H --> I{Auth mode}
+    I -- "gh" --> J[Check gh auth status]
+    I -- "ssh" --> K[Use SSH remote]
+    I -- "gcm" --> L[Configure Git Credential Manager]
+    I -- "token" --> M[Ask for fine-grained token for this run only]
+    J --> N[Ask repo, branch and commit message]
+    K --> N
+    L --> N
+    M --> N
+    N --> O[git init]
+    O --> P[Set local Git user.name and user.email]
+    P --> Q[Configure origin remote]
+    Q --> R[Create or switch branch]
+    R --> S[git add .]
+    S --> T{Any staged changes?}
+    T -- "No" --> U[Skip commit]
+    T -- "Yes" --> V[git commit]
+    U --> W[git push -u origin HEAD]
+    V --> W
+    W --> X[Done]
 ```
 
 ---
 
 ### Configuration Commands
 
+The labels containing `--config` and `--clear` are quoted to avoid Mermaid lexical errors in GitHub.
+
 ```mermaid
 flowchart LR
     A[User runs script] --> B{Argument?}
-    B -- --config --> C[Ask for new config values]
-    C --> D[Save ~/.git_quick_config]
-    B -- --clear --> E[Delete ~/.git_quick_config]
-    B -- none --> F[Run main Git workflow]
+    B -- "--config" --> C[Ask for new config values]
+    C --> D[Save non-secret ~/.git_quick_config]
+    B -- "--clear" --> E[Delete ~/.git_quick_config]
+    B -- "--security" --> F[Show security notes]
+    B -- "none" --> G[Run main Git workflow]
 ```
 
 ---
 
-### GitHub Push Flow
+### Authentication Decision Flow
+
+```mermaid
+flowchart TD
+    A[Select AUTH_MODE] --> B{Mode}
+    B -- "gh" --> C[Use GitHub CLI]
+    C --> D[Remote: https://github.com/ORG/REPO.git]
+    B -- "ssh" --> E[Use SSH key]
+    E --> F[Remote: git@github.com:ORG/REPO.git]
+    B -- "gcm" --> G[Use Git Credential Manager]
+    G --> H[Remote: https://github.com/ORG/REPO.git]
+    B -- "token" --> I[Prompt for fine-grained token]
+    I --> J[Token used only for current run]
+```
+
+---
+
+### GitHub Push Sequence
 
 ```mermaid
 sequenceDiagram
@@ -317,14 +474,16 @@ sequenceDiagram
     participant Git
     participant GitHub
 
-    User->>Script: Run ./git-quick.sh
-    Script->>User: Ask repo, branch and commit message
+    User->>Script: Run script
+    Script->>Script: Load non-secret config
+    Script->>Script: Ensure .git_quick_config is globally ignored
+    Script->>User: Ask repository, branch and commit message
     Script->>Git: git init
     Script->>Git: git config user.name/user.email
-    Script->>Git: git remote add/set-url origin
-    Script->>Git: git checkout -b branch
+    Script->>Git: git remote add or set-url origin
+    Script->>Git: git checkout branch
     Script->>Git: git add .
-    Script->>Git: git commit -m message
+    Script->>Git: git commit, if changes exist
     Script->>GitHub: git push -u origin HEAD
     GitHub-->>User: Branch pushed
 ```
@@ -333,132 +492,118 @@ sequenceDiagram
 
 ## Troubleshooting
 
-### 1. Invalid remote URL
+### Mermaid diagram does not render
 
-The current script contains this line:
+If GitHub shows:
 
-```bash
-REMOTE_URL="https://$GH_USER:$TOKEN@://github.com"
+```text
+Unable to render rich display
+Lexical error on line 3. Unrecognized text.
 ```
 
-This URL is invalid.
+Check whether an edge label contains raw `--config`, `--clear`, or similar values.
 
-It should include the organization and repository:
+This can fail:
 
-```bash
-REMOTE_URL="https://$GH_USER:$TOKEN@github.com/$ORG/$REPO.git"
+```mermaid
+flowchart LR
+    A[User runs script] --> B{Argument?}
+    B -- --config --> C[Ask for new config values]
+```
+
+Use quoted labels instead:
+
+```mermaid
+flowchart LR
+    A[User runs script] --> B{Argument?}
+    B -- "--config" --> C[Ask for new config values]
 ```
 
 ---
 
-### 2. Authentication failed
+### GitHub CLI is not installed
+
+Install GitHub CLI, or change the authentication mode:
+
+```bash
+./git-quick-push-secure.sh --config
+```
+
+Then select:
+
+```text
+ssh
+```
+
+or:
+
+```text
+gcm
+```
+
+---
+
+### GitHub CLI is not authenticated
+
+Run:
+
+```bash
+gh auth login
+```
+
+Or let the script start the login flow automatically.
+
+---
+
+### Permission denied with SSH
+
+Test SSH:
+
+```bash
+ssh -T git@github.com
+```
+
+Make sure your public key is added to your GitHub account.
+
+---
+
+### Authentication failed with token mode
 
 Possible causes:
 
-- Token is expired.
-- Token does not have repository permissions.
-- GitHub username is incorrect.
+- Token expired.
+- Token lacks repository permissions.
 - Repository does not exist.
 - Organization name is incorrect.
+- GitHub username is incorrect.
 
-Reconfigure:
+Re-run:
 
 ```bash
-./git-quick.sh --config
+./git-quick-push-secure.sh --config
 ```
+
+Or choose another authentication mode.
 
 ---
 
-### 3. Nothing to commit
+### Nothing to commit
 
 Git may show:
 
 ```text
-nothing to commit, working tree clean
+No hay cambios para commitear.
 ```
 
-This means there are no new changes to commit.
+This means there are no new staged changes. The script will still try to push the selected branch.
 
 ---
 
-### 4. Branch already exists
-
-The script handles this with:
-
-```bash
-git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
-```
-
-It first tries to create the branch. If it already exists, it switches to it.
-
----
-
-### 5. Repository does not exist on GitHub
+### Repository does not exist on GitHub
 
 The script does not create GitHub repositories automatically.
 
-Create the repository manually first, then run the script again.
-
----
-
-## Recommended Fixes
-
-The original script is useful, but the remote URL should be fixed.
-
-Replace:
-
-```bash
-REMOTE_URL="https://$GH_USER:$TOKEN@://github.com"
-```
-
-With:
-
-```bash
-REMOTE_URL="https://$GH_USER:$TOKEN@github.com/$ORG/$REPO.git"
-```
-
-Recommended improved remote block:
-
-```bash
-REMOTE_URL="https://$GH_USER:$TOKEN@github.com/$ORG/$REPO.git"
-
-if git remote | grep -q '^origin$'; then
-    git remote set-url origin "$REMOTE_URL"
-else
-    git remote add origin "$REMOTE_URL"
-fi
-```
-
-Also consider avoiding commits when there are no changes:
-
-```bash
-if git diff --cached --quiet; then
-    echo "No hay cambios para commitear."
-else
-    git commit -m "$MESSAGE"
-fi
-```
-
----
-
-## Example Full Execution
-
-```bash
-$ ./git-quick.sh
-
-Primera configuración detectada:
-USER_NAME (ej. Esteban Armas): Esteban Armas
-USER_EMAIL (ej. esarmas@ucm.es): esteban@example.com
-GH_USER (ej. esteban-armas): esteban-armas
-GitHub Token: ********
-
-Organización [work-code-hub]: work-code-hub
-Nombre del Repositorio: my-project
-Nombre de la rama (ej. lenovo): lenovo
-Mensaje del commit: Initial commit
-
-Subiendo cambios a lenovo...
-```
+Create the repository first, then run the script again.
 
 ---
 
