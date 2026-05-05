@@ -59,7 +59,7 @@ Example structure:
 
 ```text
 .
-├── git-quick-push.sh
+├── git-quick.sh
 ├── README.md
 └── your-project-files/
 ```
@@ -67,7 +67,7 @@ Example structure:
 Recommended script name:
 
 ```bash
-git-quick-push.sh
+git-quick.sh
 ```
 
 ---
@@ -95,19 +95,19 @@ git --version
 Clone or copy this repository, then make the script executable:
 
 ```bash
-chmod +x git-quick-push.sh
+chmod +x git-quick.sh
 ```
 
 Optionally move it to a directory in your `PATH`:
 
 ```bash
-sudo cp git-quick-push.sh /usr/local/bin/git-quick-push
+sudo cp git-quick.sh /usr/local/bin/git-quick
 ```
 
 Then you can run it from any project directory:
 
 ```bash
-git-quick-push
+git-quick
 ```
 
 ---
@@ -144,7 +144,7 @@ chmod 600 ~/.git_quick_config
 Run the script from inside the folder you want to push:
 
 ```bash
-./git-quick-push.sh
+./git-quick.sh
 ```
 
 On first run, the script asks for:
@@ -180,7 +180,7 @@ Mensaje del commit: Initial commit
 Use:
 
 ```bash
-./git-quick-push.sh --config
+./git-quick.sh --config
 ```
 
 This allows you to update:
@@ -197,7 +197,7 @@ This allows you to update:
 Use:
 
 ```bash
-./git-quick-push.sh --clear
+./git-quick.sh --clear
 ```
 
 This removes:
@@ -317,7 +317,7 @@ sequenceDiagram
     participant Git
     participant GitHub
 
-    User->>Script: Run ./git-quick-push.sh
+    User->>Script: Run ./git-quick.sh
     Script->>User: Ask repo, branch and commit message
     Script->>Git: git init
     Script->>Git: git config user.name/user.email
@@ -364,7 +364,7 @@ Possible causes:
 Reconfigure:
 
 ```bash
-./git-quick-push.sh --config
+./git-quick.sh --config
 ```
 
 ---
@@ -444,7 +444,7 @@ fi
 ## Example Full Execution
 
 ```bash
-$ ./git-quick-push.sh
+$ ./git-quick.sh
 
 Primera configuración detectada:
 USER_NAME (ej. Esteban Armas): Esteban Armas
@@ -465,4 +465,3 @@ Subiendo cambios a lenovo...
 ## License
 
 This project can be distributed under the MIT License.
-
